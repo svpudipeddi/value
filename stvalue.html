@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staircase AI — Path to Value</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0b1829;
+  --bg: #f2f4f8;
+  --surface: #ffffff;
+  --border: #e4e8f0;
+  --text: #111827;
+  --muted: #6b7280;
+  --teal: #00c2cb;
+  --sidebar-w: 260px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: "DM Sans", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+/* ─── HEADER ─────────────────────────────── */
+.header {
+  background: var(--navy);
+  padding: 14px 32px;
+  display: flex; align-items: center; gap: 14px;
+  position: sticky; top: 0; z-index: 200;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.25);
+}
+.header-title { font-family: "Syne", sans-serif; font-weight: 700; font-size: 16px; color: white; }
+.header-pill { background: rgba(0,194,203,0.18); border: 1px solid rgba(0,194,203,0.3); color: var(--teal); border-radius: 100px; padding: 3px 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.fav-trigger { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 6px 12px; color: white; font-size: 12px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.15s; }
+.fav-trigger:hover { background: rgba(255,255,255,0.14); }
+.fav-trigger .count { background: #f59e0b; color: white; border-radius: 100px; padding: 1px 7px; font-size: 11px; font-weight: 700; }
+
+/* ─── LAYOUT ─────────────────────────────── */
+.layout { display: flex; flex: 1; min-height: 0; }
+
+/* ─── SIDEBAR ────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--navy);
+  flex-shrink: 0;
+  position: sticky;
+  top: 48px;
+  height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 20px 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+.sidebar-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: rgba(255,255,255,0.35); padding: 0 20px; margin-bottom: 10px; }
+.sidebar-stage {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 20px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-left: 3px solid transparent;
+  position: relative;
+}
+.sidebar-stage:hover { background: rgba(255,255,255,0.06); }
+.sidebar-stage.active { border-left-color: var(--stage-color, var(--teal)); background: rgba(255,255,255,0.08); }
+.sidebar-dot { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.sidebar-info { flex: 1; min-width: 0; }
+.sidebar-num { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: rgba(255,255,255,0.35); }
+.sidebar-name { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.8); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-stage.active .sidebar-name { color: white; }
+.sidebar-count { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 100px; flex-shrink: 0; }
+
+.sidebar-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 14px 20px; }
+.sidebar-fav-section { padding: 0 20px; }
+.sidebar-fav-title { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.4); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.sidebar-fav-item { font-size: 11px; color: rgba(255,255,255,0.65); padding: 5px 0; cursor: pointer; line-height: 1.4; display: flex; align-items: flex-start; gap: 6px; }
+.sidebar-fav-item:hover { color: white; }
+.sidebar-fav-empty { font-size: 11px; color: rgba(255,255,255,0.25); font-style: italic; }
+
+/* ─── MAIN ───────────────────────────────── */
+.main { flex: 1; min-width: 0; overflow-y: auto; }
+
+/* ─── STAGE VIEW ─────────────────────────── */
+.stage-view { display: none; padding: 32px 36px; max-width: 860px; }
+.stage-view.active { display: block; }
+
+.stage-hero {
+  border-radius: 16px;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+.stage-hero::after {
+  content: attr(data-emoji);
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 80px;
+  opacity: 0.12;
+  line-height: 1;
+  pointer-events: none;
+}
+.stage-eyebrow { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; opacity: 0.65; margin-bottom: 6px; }
+.stage-title { font-family: "Syne", sans-serif; font-weight: 800; font-size: 26px; line-height: 1.2; margin-bottom: 10px; }
+.stage-desc { font-size: 14px; opacity: 0.8; line-height: 1.65; max-width: 520px; }
+.stage-meta-row { display: flex; gap: 14px; margin-top: 16px; flex-wrap: wrap; }
+.stage-meta-pill { background: rgba(255,255,255,0.15); border-radius: 100px; padding: 5px 14px; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 5px; }
+
+/* ─── OUTCOMES ───────────────────────────── */
+.outcomes-title { font-family: "Syne", sans-serif; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 14px; }
+
+.outcome-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  transition: box-shadow 0.18s;
+}
+.outcome-item:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
+.outcome-item.expanded { border-width: 2px; }
+
+.outcome-row {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  user-select: none;
+}
+.outcome-index {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800;
+  flex-shrink: 0;
+}
+.outcome-body { flex: 1; min-width: 0; }
+.outcome-name { font-weight: 600; font-size: 14px; line-height: 1.4; margin-bottom: 3px; }
+.outcome-tagline { font-size: 12px; color: var(--muted); line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.outcome-item.expanded .outcome-tagline { white-space: normal; }
+.outcome-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.time-chip { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 6px; background: #f1f5f9; color: var(--muted); white-space: nowrap; }
+.fav-btn { background: none; border: none; cursor: pointer; font-size: 15px; color: #d1d5db; transition: transform 0.15s, color 0.15s; padding: 2px; }
+.fav-btn:hover { transform: scale(1.2); }
+.fav-btn.starred { color: #f59e0b; }
+.chevron { font-size: 11px; color: var(--muted); transition: transform 0.22s; }
+.outcome-item.expanded .chevron { transform: rotate(180deg); }
+
+/* ─── OUTCOME DETAIL ─────────────────────── */
+.outcome-detail { display: none; border-top: 1px solid var(--border); background: #fafbff; }
+.outcome-item.expanded .outcome-detail { display: block; }
+
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.detail-col { padding: 18px 22px; }
+.detail-col:first-child { border-right: 1px solid var(--border); }
+.detail-col-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: var(--muted); margin-bottom: 12px; }
+.feature-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: 6px; margin: 0 4px 6px 0; }
+.config-item { display: flex; gap: 8px; padding: 5px 0; font-size: 13px; line-height: 1.5; color: var(--text); }
+.config-arrow { color: var(--muted); flex-shrink: 0; margin-top: 2px; font-size: 11px; }
+
+/* ─── STAGE NAV ──────────────────────────── */
+.stage-nav { display: flex; gap: 10px; margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--border); }
+.snav-btn { flex: 1; padding: 12px 16px; border-radius: 10px; border: 1.5px solid var(--border); background: white; cursor: pointer; font-family: "DM Sans", sans-serif; font-size: 13px; font-weight: 600; transition: all 0.18s; text-align: center; }
+.snav-btn:hover:not(:disabled) { border-color: #3b82f6; color: #3b82f6; box-shadow: 0 2px 10px rgba(59,130,246,0.15); }
+.snav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.snav-btn.next { color: white; border-color: transparent; }
+.snav-btn.next:hover:not(:disabled) { opacity: 0.9; color: white; }
+.snav-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; opacity: 0.6; margin-bottom: 2px; }
+
+/* ─── WELCOME SCREEN ─────────────────────── */
+.welcome { padding: 48px 36px; max-width: 680px; }
+.welcome-eyebrow { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--teal); margin-bottom: 12px; }
+.welcome-title { font-family: "Syne", sans-serif; font-weight: 800; font-size: 36px; line-height: 1.15; margin-bottom: 16px; color: var(--navy); }
+.welcome-title em { font-style: normal; color: #3b82f6; }
+.welcome-sub { font-size: 15px; color: var(--muted); line-height: 1.7; margin-bottom: 32px; max-width: 520px; }
+.journey-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 32px; }
+.jcard { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.18s; }
+.jcard:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.09); transform: translateY(-2px); }
+.jcard-emoji { font-size: 22px; margin-bottom: 8px; }
+.jcard-stage { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin-bottom: 3px; }
+.jcard-name { font-family: "Syne", sans-serif; font-weight: 700; font-size: 12px; line-height: 1.35; }
+.welcome-cta { display: inline-flex; align-items: center; gap: 8px; background: var(--navy); color: white; border: none; border-radius: 10px; padding: 13px 24px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: "DM Sans", sans-serif; transition: opacity 0.18s; }
+.welcome-cta:hover { opacity: 0.88; }
+
+@media (max-width: 700px) {
+  .sidebar { display: none; }
+  .stage-view { padding: 20px 16px; }
+  .detail-grid { grid-template-columns: 1fr; }
+  .detail-col:first-child { border-right: none; border-bottom: 1px solid var(--border); }
+  .journey-cards { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">Path to Value Realization</div>
+  <div class="header-pill">Staircase AI</div>
+  <div class="header-right">
+    <div class="fav-trigger" onclick="scrollToFavs()">
+      ⭐ Saved <span class="count" id="headerFavCount">0</span>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-label">Maturity Stages</div>
+    <div id="sidebarStages"></div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-fav-section">
+      <div class="sidebar-fav-title">⭐ Saved Outcomes</div>
+      <div id="sidebarFavs"><div class="sidebar-fav-empty">None saved yet</div></div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main" id="mainContent">
+
+    <!-- WELCOME -->
+    <div class="welcome" id="welcomeView">
+      <div class="welcome-eyebrow">Staircase AI by Gainsight</div>
+      <div class="welcome-title">From first signal to<br><em>customer-led growth</em></div>
+      <div class="welcome-sub">Explore your maturity journey across 6 stages — each stage surfaces the value outcomes you can unlock, the features involved, and what it takes to get there.</div>
+      <div class="journey-cards" id="journeyCards"></div>
+      <button class="welcome-cta" onclick="setStage(0)">Start with Stage 0 →</button>
+    </div>
+
+    <!-- STAGE VIEWS -->
+    <div id="stageViews"></div>
+
+  </main>
+</div>
+
+<script>
+const DATA={"stages":[{"id":"0","name":"Connect Data & See First Insights","emoji":"🔌","color":"#6366f1","description":"Enable fast time to value by connecting communication, CRM, and support data sources. Activate Staircase and surface initial AI-driven insights — sentiment, engagement, and relationship signals — with minimal configuration.","outcomes":[{"name":"Rapid Time to First Value from Customer Interactions","description":"Staircase ingests emails, meetings, CRM data, and support interactions, automatically transforming unstructured data into usable insights without manual effort.","timeToImplement":"4–6 weeks","features":["Insight Agent (Staircase AI) Integration","CRM & Data Sync","Organization Configuration","Okta SSO / SCIM"],"configurations":["Activate the Staircase AI Integration and connect to CRM","Configure account and stakeholder field mappings","Sync team member names and reporting structure","Assign user roles and permissions","Validate data flow and signal ingestion"]},{"name":"Unified Visibility into Customer Conversations","description":"All customer communications are centralized, giving teams a single, consistent view of customer engagement across channels instead of fragmented data spread across tools.","timeToImplement":"2–3 weeks","features":["Customer Conversation Timeline","Email & Calendar Data Source Configuration","Support Interaction Ingestion"],"configurations":["Enable email and calendar integrations","Configure support ticket ingestion","Set communication channel priorities","Validate conversation coverage across accounts"]},{"name":"Early AI-Driven Sentiment & Engagement Signals","description":"Teams gain immediate access to baseline sentiment, engagement levels, and relationship signals generated by Staircase AI, even before advanced configuration or tuning.","timeToImplement":"2–3 weeks","features":["Sentiment & Engagement Scoring","Sentiment Score Framework Configuration","Engagement Scoring Configuration"],"configurations":["Configure sentiment scoring thresholds","Enable engagement level tracking","Set up signal alerting rules","Validate signal accuracy across sample accounts"]},{"name":"Reduced Manual Data Entry & Note Dependency","description":"Customer insights are captured automatically from real conversations, reducing reliance on subjective notes, incomplete CRM updates, and inconsistent CSM inputs.","timeToImplement":"2–3 weeks","features":["AI-Generated Conversation Summaries","Automated Insight Extraction","CRM Note Suppression and Data Flow Alignment"],"configurations":["Enable AI conversation summaries","Configure auto-extraction rules","Align CRM data flow with Staircase outputs","Train team on new data capture workflow"]},{"name":"Foundational Trust in Data & AI Outputs","description":"By validating data connections and initial insights, teams build confidence in Staircase as a reliable source of customer intelligence that reflects real customer voice.","timeToImplement":"2–3 weeks","features":["Data Validation & Explainable AI Signals","Account & Stakeholder Mapping Validation","Data Coverage & Signal Consistency Review"],"configurations":["Validate account and stakeholder mapping","Review signal consistency across sample accounts","Confirm data coverage targets are met","Document baseline health benchmarks"]},{"name":"Faster Insight Discovery with Minimal Configuration","description":"Surface meaningful insights early without complex setup, enabling quicker adoption and lowering the barrier to advanced use cases in later stages.","timeToImplement":"1–2 weeks","features":["Quick-Start Dashboard","Default Signal Templates","Guided Onboarding Flow"],"configurations":["Activate default insight templates","Configure quick-start dashboard","Enable guided onboarding for CSM team","Set initial alert thresholds"]}]},{"id":"1","name":"Understand Customer Health & Sentiment","emoji":"💓","color":"#0ea5e9","description":"Establish a trusted view of customer health by leveraging AI-derived sentiment, engagement trends, and risk indicators from real customer interactions. Move beyond manual notes and lagging indicators.","outcomes":[{"name":"Trusted AI-Driven Customer Health Scores","description":"Teams establish a reliable, continuously updated view of customer health based on real interaction data, sentiment, and engagement patterns rather than manual inputs or lagging indicators.","timeToImplement":"3–4 weeks","features":["AI Health Score Engine","Health Score Configuration","Scorecard Customization"],"configurations":["Define health score components and weightings","Map sentiment and engagement signals to health dimensions","Configure health score thresholds and bands","Align health definitions across CS team"]},{"name":"Clear Understanding of Customer Sentiment Trends","description":"Customer sentiment is tracked and trended over time, enabling teams to understand how relationships are evolving instead of relying on point-in-time snapshots.","timeToImplement":"2–3 weeks","features":["Sentiment Trend Analysis","Topic Detection","Sentiment Timeline View"],"configurations":["Enable sentiment trending reports","Configure topic detection categories","Set sentiment change alert thresholds","Build sentiment dashboard for CSM team"]},{"name":"Early Identification of Relationship Risk","description":"Risk signals from communication patterns, sentiment shifts, and stakeholder changes are surfaced proactively — up to 6 weeks earlier than usage data alone.","timeToImplement":"2–3 weeks","features":["Risk Signal Detection","Relationship Strength Mapping","Stakeholder Network Visualization"],"configurations":["Define risk signal types and thresholds","Configure stakeholder relationship mapping","Enable champion change detection","Set up proactive risk alerts"]},{"name":"Contextual Health Signals Backed by Real Conversations","description":"Health signals are enriched with conversation context, so CSMs understand not just that health changed, but why — grounded in actual customer voice.","timeToImplement":"2–3 weeks","features":["Conversation Intelligence","Signal Explanation Layer","Timeline Integration"],"configurations":["Link health signals to source conversations","Configure signal explanation views","Enable timeline integration in C360","Train CSMs on reading contextual signals"]},{"name":"Consistent Health Interpretation Across Teams","description":"Health scores and signals are interpreted consistently, reducing CSM-to-CSM variability and enabling managers to compare portfolio health objectively.","timeToImplement":"2–3 weeks","features":["Health Score Standardization","Manager Dashboard","Team Calibration Tools"],"configurations":["Align on health score definitions across teams","Build manager-level health overview dashboard","Configure team calibration review cadence","Document health interpretation guidelines"]},{"name":"Baseline for Proactive Intervention","description":"With health baselines established, teams can identify when accounts deviate meaningfully from expected patterns and intervene before issues escalate.","timeToImplement":"3–4 weeks","features":["Baseline Health Modeling","Deviation Alerting","Intervention Playbooks"],"configurations":["Establish health baselines per segment","Configure deviation detection rules","Link deviation alerts to intervention actions","Track intervention outcomes"]}]},{"id":"2","name":"Act Proactively on Risk & Opportunity","emoji":"⚡","color":"#f59e0b","description":"Turn insights into action by operationalizing risk, churn, and opportunity signals. Teams begin responding earlier and more consistently, shifting from reactive follow-ups to proactive intervention.","outcomes":[{"name":"Timely Proactive Intervention on At-Risk Accounts","description":"CSMs are alerted to risk signals early enough to intervene before customers reach a point of no return, shifting the team from firefighting to prevention.","timeToImplement":"3–4 weeks","features":["Proactive Risk Alerting","Risk Alert Workflows","At-Risk Account Dashboard"],"configurations":["Define risk trigger conditions","Configure alert routing to CSMs","Build at-risk account dashboard","Link risk alerts to playbook actions"]},{"name":"Prioritized Focus on the Right Accounts at the Right Time","description":"AI-driven prioritization surfaces the accounts that need attention most, so CSMs spend time where it has the highest impact.","timeToImplement":"2–3 weeks","features":["AI Prioritization Engine","Daily Priority Queue","Focus Score Configuration"],"configurations":["Configure prioritization signal weighting","Enable daily priority queue for CSMs","Set account focus criteria","Align prioritization logic with CS team workflows"]},{"name":"Consistent Response to Risk Signals Across Teams","description":"Risk responses are standardized across the team, ensuring no account slips through the cracks due to inconsistent processes.","timeToImplement":"2–3 weeks","features":["Standardized Risk Playbooks","Response Tracking","Team Consistency Reports"],"configurations":["Define standard risk response playbooks","Configure response tracking","Build consistency monitoring reports","Review and iterate on response SLAs"]},{"name":"Early Identification of Expansion and Upsell Opportunities","description":"Positive signals — feature requests, buying language, champion growth — are surfaced automatically so CSMs can act on expansion opportunities before they go cold.","timeToImplement":"3–4 weeks","features":["AI Expansion Analysis","Expansion Signal Detection","Opportunity Dashboard"],"configurations":["Configure expansion signal categories","Enable AI Expansion Analysis","Build expansion opportunity dashboard","Link expansion signals to renewal workflow"]},{"name":"Reduced Time from Insight to Action","description":"Friction between signal detection and CSM action is eliminated, compressing the cycle from insight to customer engagement.","timeToImplement":"2–3 weeks","features":["Slack & Email Alerting","Ask Staircase Slack Integration","One-Click Actions"],"configurations":["Enable Slack and email alerting","Configure Ask Staircase Slack app","Set up one-click action workflows","Define SLA targets for insight-to-action"]}]},{"id":"3","name":"Scale Customer Intelligence & Efficiency","emoji":"🚀","color":"#22c55e","description":"Operationalize Staircase insights across teams and workflows. Embed signals into daily operations, automate alerts and actions, and prioritize work so teams spend time on the highest-impact engagements.","outcomes":[{"name":"Automated Signal-Driven Workflows at Scale","description":"Staircase signals automatically trigger workflows — alerts, handoffs, escalations — across the CS team without manual monitoring, enabling scale without adding headcount.","timeToImplement":"4–6 weeks","features":["Workflow Automation Engine","Signal-to-Action Triggers","Gainsight CS Integration"],"configurations":["Define signal-to-workflow trigger rules","Configure automated escalation paths","Integrate with Gainsight CS CTAs and playbooks","Validate automation coverage across accounts"]},{"name":"Reduced Operational Overhead for Customer Teams","description":"Routine analysis tasks — account reviews, health checks, prep work — are automated, freeing CSMs to focus on high-value customer interactions.","timeToImplement":"3–4 weeks","features":["Automated Meeting Prep","AI Conversation Summaries","Bulk Account Review Tools"],"configurations":["Enable automated meeting prep summaries","Configure bulk health review workflows","Streamline account review cadence","Measure time saved per CSM per week"]},{"name":"Consistent Execution Across the Customer Portfolio","description":"Every account receives consistent monitoring and response regardless of CSM tenure, segment, or bandwidth.","timeToImplement":"3–4 weeks","features":["Portfolio-Wide Signal Coverage","Coverage Monitoring Dashboard","SLA Compliance Tracking"],"configurations":["Configure portfolio-wide coverage settings","Build coverage monitoring dashboard","Set SLA compliance alerts","Review and close coverage gaps"]},{"name":"Improved Productivity Through Intelligent Prioritization","description":"CSMs have a clear daily priority list driven by AI signals, eliminating guesswork about where to focus and reducing time wasted on low-impact activities.","timeToImplement":"2–3 weeks","features":["Intelligent Daily Queue","AI Prioritization Signals","Productivity Analytics"],"configurations":["Enable intelligent daily priority queue","Configure signal weighting for prioritization","Build CSM productivity dashboards","Align queue logic with team capacity"]},{"name":"Scalable Management Visibility and Oversight","description":"Managers have real-time visibility into team activity, account health trends, and risk exposure without requiring manual status updates from CSMs.","timeToImplement":"2–3 weeks","features":["Manager Executive Dashboard","Team Performance Reports","Portfolio Risk Overview"],"configurations":["Build manager-level dashboards","Configure team performance reports","Enable real-time portfolio risk overview","Set manager alert thresholds"]}]},{"id":"4","name":"Enable Data-Driven Decision Making","emoji":"📊","color":"#8b5cf6","description":"Leverage Staircase as a strategic intelligence layer. Leaders use predictive insights, trends, and natural language analysis to inform planning, forecasting, prioritization, and go-to-market decisions.","outcomes":[{"name":"Predictable Renewal Forecasting Based on Relationship Signals","description":"Renewal forecasting is enriched with relationship health signals, making predictions more accurate than ARR-weighted models alone.","timeToImplement":"4–6 weeks","features":["Renewal Forecast Intelligence","Relationship-Weighted Forecasting","Renewal Risk Scoring"],"configurations":["Integrate relationship signals into renewal model","Configure renewal risk scoring","Build renewal forecast dashboard","Align forecast cadence with finance reporting"]},{"name":"Portfolio-Level Risk and Opportunity Modeling","description":"Leaders can model risk and opportunity exposure across the entire portfolio, enabling resource allocation decisions based on signal data rather than intuition.","timeToImplement":"3–4 weeks","features":["Portfolio Intelligence Dashboard","Risk Distribution Modeling","Opportunity Heat Mapping"],"configurations":["Build portfolio-level risk dashboards","Configure opportunity heat maps","Enable segment-level risk modeling","Set executive reporting cadence"]},{"name":"Executive-Ready Customer Intelligence Insights","description":"Insights are packaged in executive-ready formats — dashboards, briefings, and NLP query results — that leaders can use directly in planning and board-level conversations.","timeToImplement":"2–3 weeks","features":["Ask Staircase (Executive Dashboard)","Executive Briefing Automation","NLP Query Interface"],"configurations":["Configure Ask Staircase on Executive Dashboard","Enable NLP query interface for leaders","Build executive briefing templates","Validate insight accuracy with leadership team"]},{"name":"Trend-Based Strategic Planning","description":"Historical sentiment and engagement trends inform strategic planning cycles, enabling teams to make decisions based on trajectory rather than current-state snapshots.","timeToImplement":"3–4 weeks","features":["Trend Analysis Engine","Historical Signal Reports","Planning Cycle Integration"],"configurations":["Enable historical trend reporting","Build trend dashboards for planning cycles","Configure trend anomaly detection","Align trend reviews with QBR cadence"]},{"name":"Alignment Between Customer Signals and Revenue Strategy","description":"Customer health and relationship signals are directly aligned with revenue metrics, enabling CS and revenue teams to operate from a shared view of customer value.","timeToImplement":"3–4 weeks","features":["Revenue Signal Integration","CS-to-Revenue Alignment Dashboard","ARR Health Correlation"],"configurations":["Map relationship signals to ARR/MRR data","Build CS-to-revenue alignment dashboards","Configure ARR health correlation views","Align reporting with revenue operations team"]}]},{"id":"5","name":"Drive Customer-Led Growth","emoji":"🌱","color":"#ef4444","description":"Use customer intelligence to power expansion, renewals, and advocacy at scale. Turn sentiment, engagement, and relationship strength into a growth engine that aligns customer outcomes with revenue.","outcomes":[{"name":"Systematic Identification of Customer Advocates","description":"High-sentiment, deeply engaged customers are automatically identified as advocate candidates, enabling a systematic approach to building a reference and advocacy pipeline.","timeToImplement":"3–4 weeks","features":["Advocate Identification Engine","Champion Tracking","Advocacy Pipeline Dashboard"],"configurations":["Define advocate qualification criteria","Configure champion tracking signals","Build advocacy pipeline dashboard","Integrate with reference management process"]},{"name":"Expansion Momentum Amplified by Relationship Intelligence","description":"Expansion conversations are timed and targeted using relationship strength and buying signals, increasing win rates on upsell and cross-sell motions.","timeToImplement":"3–4 weeks","features":["AI Expansion Analysis","Relationship-Timed Outreach","Expansion Signal Alerts"],"configurations":["Enable AI Expansion Analysis","Configure expansion timing signals","Build expansion outreach templates","Align expansion plays with sales team"]},{"name":"Stronger Executive Relationship Mapping","description":"Executive relationships are tracked and visualized, enabling proactive management of key stakeholders and reducing risk of champion loss at the executive level.","timeToImplement":"2–3 weeks","features":["Stakeholder Network Visualization","Executive Relationship Tracking","Champion Change Detection"],"configurations":["Enable executive stakeholder tracking","Configure champion change detection alerts","Build executive relationship health reports","Define escalation paths for exec relationship risk"]},{"name":"Customer Voice Informing Product and Go-to-Market Strategy","description":"Aggregated customer signals — feature requests, competitive mentions, pain points — feed directly into product and GTM planning, closing the loop between customer voice and business strategy.","timeToImplement":"4–6 weeks","features":["Topics & Themes Analysis","Competitive Mention Detection","Voice of Customer Reporting"],"configurations":["Configure topics and themes detection","Enable competitive mention tracking","Build voice of customer reports","Establish feedback loop with product team"]},{"name":"Predictable Growth Engine Powered by Relationship Signals","description":"Relationship health and engagement trends become a predictable input into the growth model, enabling reliable forecasting of expansion and renewal outcomes.","timeToImplement":"4–6 weeks","features":["Growth Signal Modeling","Predictive Expansion Scoring","Revenue Intelligence Integration"],"configurations":["Build predictive expansion scoring model","Integrate relationship signals into growth forecasting","Configure revenue intelligence dashboards","Align growth model with finance and sales ops"]},{"name":"Scalable Advocacy and Reference Readiness Tracking","description":"Advocacy and reference readiness are tracked at portfolio scale, ensuring the business always has a healthy pipeline of reference customers for sales and marketing.","timeToImplement":"3–4 weeks","features":["Reference Readiness Scoring","Advocacy Pipeline Management","NPS + Sentiment Correlation"],"configurations":["Configure reference readiness scoring","Build advocacy pipeline management view","Correlate NPS results with sentiment signals","Align advocacy tracking with marketing team"]}]}]};
+
+let activeStage = -1; // -1 = welcome
+
+// ── Favs ──────────────────────────────────────────────────────
+function getFavs() {
+  try { return new Set(JSON.parse(localStorage.getItem('st_favs2') || '[]')); } catch(e) { return new Set(); }
+}
+function saveFavs(s) {
+  try { localStorage.setItem('st_favs2', JSON.stringify([...s])); } catch(e) {}
+}
+function toggleFav(key, btn) {
+  const favs = getFavs();
+  if (favs.has(key)) { favs.delete(key); btn.classList.remove('starred'); }
+  else { favs.add(key); btn.classList.add('starred'); }
+  saveFavs(favs);
+  refreshFavUI();
+}
+function refreshFavUI() {
+  const favs = getFavs();
+  document.getElementById('headerFavCount').textContent = favs.size;
+
+  // Update all star buttons
+  DATA.stages.forEach(stage => {
+    stage.outcomes.forEach((o, oi) => {
+      const key = `${stage.id}-${oi}`;
+      const btn = document.getElementById(`fav-${key}`);
+      if (btn) btn.classList.toggle('starred', favs.has(key));
+    });
+  });
+
+  // Sidebar favs
+  const sfavs = document.getElementById('sidebarFavs');
+  if (favs.size === 0) {
+    sfavs.innerHTML = '<div class="sidebar-fav-empty">None saved yet</div>';
+    return;
+  }
+  let html = '';
+  DATA.stages.forEach(stage => {
+    stage.outcomes.forEach((o, oi) => {
+      const key = `${stage.id}-${oi}`;
+      if (favs.has(key)) {
+        html += `<div class="sidebar-fav-item" onclick="jumpTo(${parseInt(stage.id)},${oi})">
+          <span style="opacity:0.5;flex-shrink:0">${stage.emoji}</span>
+          <span>${o.name}</span>
+        </div>`;
+      }
+    });
+  });
+  sfavs.innerHTML = html;
+}
+function scrollToFavs() {
+  document.getElementById('sidebarFavs').scrollIntoView({ behavior: 'smooth' });
+}
+function jumpTo(stageIdx, oi) {
+  setStage(stageIdx);
+  setTimeout(() => {
+    const el = document.getElementById(`outcome-${DATA.stages[stageIdx].id}-${oi}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (!el.classList.contains('expanded')) toggleOutcome(DATA.stages[stageIdx].id, oi);
+    }
+  }, 120);
+}
+
+// ── Build welcome journey cards ─────────────────────────────
+function buildWelcome() {
+  document.getElementById('journeyCards').innerHTML = DATA.stages.map((s, i) =>
+    `<div class="jcard" onclick="setStage(${i})" style="border-top:3px solid ${s.color}">
+      <div class="jcard-emoji">${s.emoji}</div>
+      <div class="jcard-stage">Stage ${s.id}</div>
+      <div class="jcard-name">${s.name}</div>
+    </div>`
+  ).join('');
+}
+
+// ── Build sidebar ────────────────────────────────────────────
+function buildSidebar() {
+  document.getElementById('sidebarStages').innerHTML = DATA.stages.map((s, i) =>
+    `<div class="sidebar-stage" id="sidebar-${i}" onclick="setStage(${i})" style="--stage-color:${s.color}">
+      <div class="sidebar-dot" style="background:${s.color}22">${s.emoji}</div>
+      <div class="sidebar-info">
+        <div class="sidebar-num">Stage ${s.id}</div>
+        <div class="sidebar-name">${s.name}</div>
+      </div>
+      <div class="sidebar-count" style="background:${s.color}22;color:${s.color}">${s.outcomes.length}</div>
+    </div>`
+  ).join('');
+}
+
+// ── Build stage views ────────────────────────────────────────
+function buildStageViews() {
+  const favs = getFavs();
+  document.getElementById('stageViews').innerHTML = DATA.stages.map((stage, si) => {
+    const prevStage = si > 0 ? DATA.stages[si-1] : null;
+    const nextStage = si < DATA.stages.length-1 ? DATA.stages[si+1] : null;
+
+    const outcomesHTML = stage.outcomes.map((o, oi) => {
+      const key = `${stage.id}-${oi}`;
+      const isFav = favs.has(key);
+      const featHTML = o.features.map(f =>
+        `<span class="feature-tag" style="background:${stage.color}18;color:${stage.color}">${f}</span>`
+      ).join('');
+      const configHTML = o.configurations.map(c =>
+        `<div class="config-item"><span class="config-arrow">→</span><span>${c}</span></div>`
+      ).join('');
+
+      return `
+      <div class="outcome-item" id="outcome-${stage.id}-${oi}">
+        <div class="outcome-row" onclick="toggleOutcome('${stage.id}',${oi})">
+          <div class="outcome-index" style="background:${stage.color}18;color:${stage.color}">${oi+1}</div>
+          <div class="outcome-body">
+            <div class="outcome-name">${o.name}</div>
+            <div class="outcome-tagline">${o.description}</div>
+          </div>
+          <div class="outcome-right">
+            <div class="time-chip">⏱ ${o.timeToImplement}</div>
+            <button class="fav-btn ${isFav?'starred':''}" id="fav-${key}" onclick="event.stopPropagation();toggleFav('${key}',this)" title="Save outcome">★</button>
+            <span class="chevron">▼</span>
+          </div>
+        </div>
+        <div class="outcome-detail">
+          <div class="detail-grid">
+            <div class="detail-col">
+              <div class="detail-col-title">Features Involved</div>
+              <div>${featHTML}</div>
+            </div>
+            <div class="detail-col">
+              <div class="detail-col-title">Key Configurations</div>
+              ${configHTML}
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `
+    <div class="stage-view" id="stage-view-${si}">
+      <div class="stage-hero" style="background:linear-gradient(135deg,${stage.color}dd,${stage.color}99)" data-emoji="${stage.emoji}">
+        <div class="stage-eyebrow">Stage ${stage.id} of 5</div>
+        <div class="stage-title">${stage.name}</div>
+        <div class="stage-desc">${stage.description}</div>
+        <div class="stage-meta-row">
+          <div class="stage-meta-pill">${stage.emoji} ${stage.outcomes.length} value outcomes</div>
+          <div class="stage-meta-pill">📋 From the ST Engagement Model</div>
+        </div>
+      </div>
+
+      <div class="outcomes-title">Value Outcomes</div>
+      ${outcomesHTML}
+
+      <div class="stage-nav">
+        <button class="snav-btn prev" onclick="setStage(${si-1})" ${!prevStage?'disabled':''}>
+          ${prevStage ? `<div class="snav-label">← Previous</div><div>${prevStage.emoji} ${prevStage.name}</div>` : '<div>—</div>'}
+        </button>
+        <button class="snav-btn next" style="background:${nextStage?nextStage.color:'#ccc'}" onclick="setStage(${si+1})" ${!nextStage?'disabled':''}>
+          ${nextStage ? `<div class="snav-label">Next →</div><div>${nextStage.emoji} ${nextStage.name}</div>` : '<div>—</div>'}
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Toggle outcome expand ────────────────────────────────────
+function toggleOutcome(stageId, oi) {
+  const item = document.getElementById(`outcome-${stageId}-${oi}`);
+  const stage = DATA.stages.find(s => s.id === stageId);
+  const isExpanding = !item.classList.contains('expanded');
+  item.classList.toggle('expanded', isExpanding);
+  if (isExpanding) {
+    item.style.borderColor = stage.color;
+  } else {
+    item.style.borderColor = '';
+  }
+}
+
+// ── Set active stage ─────────────────────────────────────────
+function setStage(idx) {
+  if (idx < 0 || idx >= DATA.stages.length) return;
+  activeStage = idx;
+
+  // Show/hide views
+  document.getElementById('welcomeView').style.display = 'none';
+  document.querySelectorAll('.stage-view').forEach((v, i) => v.classList.toggle('active', i === idx));
+
+  // Update sidebar
+  document.querySelectorAll('.sidebar-stage').forEach((s, i) => s.classList.toggle('active', i === idx));
+
+  // Scroll main to top
+  document.getElementById('mainContent').scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Init ─────────────────────────────────────────────────────
+buildWelcome();
+buildSidebar();
+buildStageViews();
+refreshFavUI();
+</script>
+</body>
+</html>
